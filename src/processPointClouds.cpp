@@ -28,6 +28,7 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
     auto startTime = std::chrono::steady_clock::now();
 
     // Apply voxel filter
+    //downsampling the dataset using a leaf size of .2m
     pcl::VoxelGrid<PointT> vg;
   	typename pcl::PointCloud<PointT>::Ptr cloudFiltered (new pcl::PointCloud<PointT>);
     vg.setInputCloud (cloud);
@@ -200,7 +201,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
     for (const pcl::PointIndices getIndices : cluster_indices){
         typename pcl::PointCloud<PointT>::Ptr cloud_cluster (new pcl::PointCloud<PointT>);
         //pre-alloacte memory, reducing memory reallocation overhead. 
-        cloud_cluster->points.reserve(getIndicies.indices.size());
+        cloud_cluster->points.reserve(getIndices.indices.size());
           
         // extract the points from the original cluster to this one
         for (int index : getIndices.indices) {

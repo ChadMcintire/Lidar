@@ -83,18 +83,18 @@ void simpleHighway(pcl::visualization::PCLVisualizer::Ptr& viewer)
 
 void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer, ProcessPointClouds<pcl::PointXYZI> *pointProcessorI, const pcl::PointCloud<pcl::PointXYZI>::Ptr &inputCloud){
   //Setup Filter Cloud parameters
-  float filterRes = 0.4; // Set an appropriate resolution
-  Eigen::Vector4f minPoint(-10, -6.5, -2, 1); // Define region min bound
-  Eigen::Vector4f maxPoint(30, 6.5, 1, 1); // Define region max bound
+  float filterRes = 0.3; // Set an appropriate resolution
+  Eigen::Vector4f minPoint(-10, -5, -2, 1); // Define region min bound
+  Eigen::Vector4f maxPoint(30, 8, 1, 1); // Define region max bound
 
    //segment plane parameters
   int maxIterations = 50;
   float distanceThreshold = 0.3;
   
   //Clustering
-  float clusterTolerance = 0.6;
+  float clusterTolerance = 0.53;
   int minsize = 10;
-  int maxsize = 140;
+  int maxsize = 500;
   
   // Reduce number of points
   pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, filterRes, minPoint, maxPoint);

@@ -91,79 +91,56 @@ pcl::visualization::PCLVisualizer::Ptr initScene()
 
 std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
-  std::cout << "Section 1" << std::endl;
-	std::vector<int> finalInliersResult;
+	std::unordered_set<int> inlierResults;
 	srand(time(NULL));
 	
-    std::vector<int> inliersResult;
+
 	while(maxIterations--) {
-        inliersResult.clear();
-        std::cout << "FinalInlierSize: " << finalInliersResult.size() << ", InlierSize: " << inliersResult.size() << std::endl;
-  
-        //push every element that has not been checked (all of them) into a vector to be tested
-        std::vector<int> remainingElements;
-        for (int i = 0; i < cloud->points.size(); i++){
-        	remainingElements.push_back(i);
-        }
-        std::cout << "After pushing all remaining elements" << std::endl;
-        //std::cout << "vec size" << remainingElements.size() << std::endl;
-        //grab 2 random points and put them into the index vector, and pop them off the remaining vector
-    	std::vector<pcl::PointXYZ> original_points; 
-        for (int i = 0; i < 2; i++) {
-          if (inliersResult.empty()) {
-            int index = selectRandom(cloud->points.size());
-          
-            original_points.push_back(cloud->points[index]);
-            remainingElements.erase(std::find(remainingElements.begin(),remainingElements.end(),index));
-            inliersResult.push_back(index);
-        //std::cout << "original index " << index << endl; 
-          } else {
-            int index2 = selectRandom(cloud->points.size());
-            while (index2 == inliersResult[0]) {
-              index2 = selectRandom(cloud->points.size());
+
+            //push every element that has not been checked (all of them) into a vector to be tested
+            std::unordered_set<int> inliers;
+
+            while (inliers.size() < 2){
+            	inliers.insert(rand()%(cloud->points.size()));
             }
-            original_points.push_back(cloud->points[index2]);
-            remainingElements.erase(std::find(remainingElements.begin(),remainingElements.end(),index2));
-            inliersResult.push_back(index2);
-          }
-        }
-        std::array<float, 3> abc = findLine(original_points[0], original_points[1]);
-    
-     std::cout << "before while loop" << std::endl;
-     while(!remainingElements.empty()){
-       int remaining_index = remainingElements.back();
-       remainingElements.pop_back();
-       float x3 = cloud->points[remaining_index].x;
-       float y3 = cloud->points[remaining_index].y;
-
-       
-       float d = (fabs(abc[0] * x3 + abc[1] * y3 + abc[2])) / (sqrt(abc[0]*abc[0] + abc[1]*abc[1]));
-       
-       if (d <= distanceTol){
-       //std::cout << "a " << abc[0] << std::endl;
-       //std::cout << "b " << abc[1] << std::endl;
-       //std::cout << "c " << abc[2] << std::endl;
-       //std::cout << "X " << x3 << std::endl;
-       //std::cout << "Y " << y3 << std::endl;
-       //std::cout << "Distance formula result " << d << std::endl;
-       //std::cout << "check index" << remaining_index << std::endl;
-         inliersResult.push_back(remaining_index);
-       }
-     }  
-      std::cout << "Before check: " << finalInliersResult.size() << ", " << inliersResult.size() << std::flush;
-      if (finalInliersResult.size() < inliersResult.size()){
-          finalInliersResult = inliersResult;
-      }
-      std::cout << "after check" << finalInliersResult.size() << "," << inliersResult.size() << std::endl;
-      std::cout << "The end0" << std::endl;
+      
+            float x1, y1, x2, y2;
+      
+            auto itr = inliers.begin();
+            x1 = cloud->points[*itr].x;
+            y1 = cloud->points[*itr].y;
+            itr++;
+            x2 = cloud->points[*itr].x;
+            y2 = cloud->points[*itr].y;
+      
+            float a = (y1-y2);
+            float b = (x2-x1);
+            float c = (x1*y2-x2*y1);
+            
+            for(int index = 0; index < cloud->points.size(); index++)
+            {
+                if(inliers.count(index)>0){
+                    continue;
+                }
+        
+                pcl::PointXYZ point = cloud->points[index];
+                float x3 = point.x;
+                float y3 = point.y;
+                
+                float d = fabs(a*x3+b*y3+c)/sqrt(a*a+b*b);
+              
+                if(d <= distanceTol) {
+            	    inliers.insert(index); 
+                }
+            }
+      
+      
+      		if(inliers.size() > inlierResults.size())
+      		{
+      			inlierResults = inliers; 
+      		}  
     }
-    std::cout << "The end1" << std::endl;
-    std::unordered_set<int> my_set(finalInliersResult.begin(), finalInliersResult.end());
-    for (int i: my_set)
-    	std::cout << i << ' ';
-
-    std::cout << "The end2" << std::endl;
-	return my_set;
+      return inlierResults;
 }
 
 int main ()
@@ -177,7 +154,7 @@ int main ()
 	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 3, 1.0);
+	std::unordered_set<int> inliers = Ransac(cloud, 20, 0.5);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());
