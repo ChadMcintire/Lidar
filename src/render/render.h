@@ -9,6 +9,10 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
+#include <pcl/common/pca.h>
+
 
 struct Color
 {
@@ -89,5 +93,11 @@ void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl:
 void renderPointCloud(pcl::visualization::PCLVisualizer::Ptr& viewer, const pcl::PointCloud<pcl::PointXYZI>::Ptr& cloud, std::string name, Color color = Color(-1,-1,-1));
 void renderBox(pcl::visualization::PCLVisualizer::Ptr& viewer, Box box, int id, Color color = Color(1,0,0), float opacity=1);
 void renderBox(pcl::visualization::PCLVisualizer::Ptr& viewer, BoxQ box, int id, Color color = Color(1,0,0), float opacity=1);
+
+// Function prototype for PCA-based bounding box computation
+BoxQ computeBoundingBoxPCA(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+
+// Function prototype for rendering bounding box
+void renderBox(pcl::visualization::PCLVisualizer::Ptr& viewer, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int id, Color color = Color(1,0,0), float opacity=1);
 
 #endif

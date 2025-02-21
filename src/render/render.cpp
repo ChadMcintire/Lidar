@@ -109,3 +109,70 @@ void renderBox(pcl::visualization::PCLVisualizer::Ptr& viewer, BoxQ box, int id,
     viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, cubeFill);
     viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, opacity*0.3, cubeFill);
 }
+
+void renderBox(pcl::visualization::PCLVisualizer::Ptr& viewer, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int id, Color color, float opacity) {
+    
+    // Compute the PCA bounding box
+    BoxQ box = computeBoundingBoxPCA(cloud);
+
+    // Add oriented bounding box to the viewer
+    viewer->addCube(
+        box.bboxTransform, 
+        box.bboxQuaternion, 
+        box.cube_length, 
+        box.cube_width, 
+        box.cube_height, 
+        "bbox" + std::to_string(id)
+    );
+    
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_REPRESENTATION, pcl::visualization::PCL_VISUALIZER_REPRESENTATION_WIREFRAME, "bbox" + std::to_string(id)); 
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR, color.r, color.g, color.b, "bbox" + std::to_string(id));
+    viewer->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, opacity, "bbox" + std::to_string(id));
+}
+
+
+BoxQ computeBoundingBoxPCA(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
+    BoxQ box;
+    
+    if (cloud->points.empty()) {
+        std::cerr << "Error: Empty point cloud in PCA computation!" << std::endl;
+        return box;
+    }
+
+    // Compute PCA centroid
+    Eigen::Vector4f pcaCentroid;
+    pcl::compute3DCentroid(*cloud, pcaCentroid);
+
+    // Compute covariance matrix and eigenvectors
+    Eigen::Matrix3f covariance;
+    computeCovarianceMatrixNormalized(*cloud, pcaCentroid, covariance);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
+    Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
+
+    // Ensure proper orientation
+    eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
+
+    // Transform point cloud to PCA-aligned coordinate system
+    Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
+    projectionTransform.block<3,3>(0,0) = eigenVectorsPCA.transpose();
+    projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * pcaCentroid.head<3>());
+    
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudProjected(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::transformPointCloud(*cloud, *cloudProjected, projectionTransform);
+
+    // Compute min and max points
+    pcl::PointXYZ minPoint, maxPoint;
+    pcl::getMinMax3D(*cloudProjected, minPoint, maxPoint);
+
+    // Compute the center of the bounding box
+    Eigen::Vector3f meanDiagonal = 0.5f * (maxPoint.getVector3fMap() + minPoint.getVector3fMap());
+
+    // Set up the bounding box values
+    box.bboxTransform = eigenVectorsPCA * meanDiagonal + pcaCentroid.head<3>();
+    box.bboxQuaternion = Eigen::Quaternionf(eigenVectorsPCA);
+    box.cube_length = maxPoint.x - minPoint.x;
+    box.cube_width = maxPoint.y - minPoint.y;
+    box.cube_height = maxPoint.z - minPoint.z;
+
+    return box;
+}
