@@ -101,7 +101,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer, std::shared_ptr<P
 
     // Plane segmentation
     std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = 
-        pointProcessorI->SegmentPlane(filterCloud, maxIterations, distanceThreshold);
+        pointProcessorI->RansacPlaneSegment(filterCloud, maxIterations, distanceThreshold);
 
     renderPointCloud(viewer, segmentCloud.second, "planeCloud", Color(1, 1, 1));
 

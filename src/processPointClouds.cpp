@@ -19,6 +19,41 @@ void ProcessPointClouds<PointT>::numPoints(typename pcl::PointCloud<PointT>::Ptr
     std::cout << cloud->points.size() << std::endl;
 }
 
+template<typename PointT>
+std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>
+              ProcessPointClouds<PointT>::RansacPlaneSegment(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
+{
+  auto startTime = std::chrono::steady_clock::now();
+	srand(time(NULL));
+
+  int num_points = cloud->points.size();
+  auto all_points = cloud->points;
+
+  Ransac<PointT> segRansac(maxIterations, distanceTol, num_points);
+
+  // get inliers from local-RANSAC implementation rather than PCL implementation
+  std::unordered_set<int> inliersResult = segRansac.Ransac3d(cloud);
+
+  auto endTime = std::chrono::steady_clock::now();
+  auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+  std::cout << "local-RANSAC plane segmentation took " << elapsedTime.count() << " milliseconds" << std::endl;
+
+  typename pcl::PointCloud<PointT>::Ptr out_plane(new pcl::PointCloud<PointT>());
+	typename pcl::PointCloud<PointT>::Ptr in_plane(new pcl::PointCloud<PointT>());
+
+  for (int i=0; i<num_points; i++) {
+    PointT pt = all_points[i];
+    if (inliersResult.count(i)) {
+      out_plane->points.push_back(pt);
+    }
+    else {
+      in_plane->points.push_back(pt);
+    }
+  }
+
+  return std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr>(in_plane, out_plane);
+}
+
 
 template<typename PointT>
 typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(typename pcl::PointCloud<PointT>::Ptr cloud, float filterRes, Eigen::Vector4f minPoint, Eigen::Vector4f maxPoint)
