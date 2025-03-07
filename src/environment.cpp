@@ -91,10 +91,11 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer, std::shared_ptr<P
     int maxIterations = 50;
     float distanceThreshold = 0.3;
 
-    float clusterTolerance = 1.0;  // Looser tolerance
-    int minsize = 3;               // Lower minsize for more clusters
-    int maxsize = 1000;            // Increase maxsize
-
+  // cluster params
+  float clusterTolerance = 0.5;
+  int minClusterSize = 10;
+  int maxClusterSize = 140;
+  
     // Filtering
     pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, filterRes, minPoint, maxPoint);
     std::cout << "Filtered cloud size: " << filterCloud->size() << std::endl;
@@ -106,7 +107,9 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer, std::shared_ptr<P
     renderPointCloud(viewer, segmentCloud.second, "planeCloud", Color(1, 1, 1));
 
     // Clustering
-    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(segmentCloud.first, clusterTolerance, minsize, maxsize);
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->EuclideanClustering(segmentCloud.first, clusterTolerance, minClusterSize, maxClusterSize);
+
+    //std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(segmentCloud.first, clusterTolerance, minsize, maxsize);
     std::cout << "Number of clusters found: " << cloudClusters.size() << std::endl;
 
     int clusterId = 0;
@@ -117,6 +120,8 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr &viewer, std::shared_ptr<P
         pointProcessorI->numPoints(cluster);
 
         renderPointCloud(viewer, cluster, "obstCloud" + std::to_string(clusterId), colors[clusterId % colors.size()]);
+
+
 
         // Convert to pcl::PointXYZ for PCA
         pcl::PointCloud<pcl::PointXYZ>::Ptr clusterXYZ(new pcl::PointCloud<pcl::PointXYZ>);
